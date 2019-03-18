@@ -1,0 +1,7 @@
+Build/
+Mailrss.xcodeproj/
+compile_commands.json
+feedhq-export.opml
+state.xml
+mailrss
+*.o

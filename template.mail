@@ -1,0 +1,9 @@
+To: you@yourdomain.com
+From: "{{feed_title}}" <sender@yourdomain.com>
+Subject: {{article_title}}
+Content-Type: text/plain
+
+{{article_description}}
+
+--
+Posted by mailrss. Full link to article: {{article_url}}
