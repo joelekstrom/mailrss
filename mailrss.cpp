@@ -10,7 +10,8 @@
 #include <cstring>
 #include <optional>
 
-using namespace std;
+using std::optional;
+using std::string;
 
 namespace mailrss {
     class XMLElementWrapper {
@@ -57,9 +58,9 @@ namespace mailrss {
                 if (title()) return title();
                 if (description()) {
                     // Hash the content of description as a last resort
-                    hash<string> hasher;
+                    std::hash<string> hasher;
                     size_t hash = hasher(description().value());
-                    ostringstream stringStream;
+                    std::ostringstream stringStream;
                     stringStream << hash;
                     string a;
                     return stringStream.str();
@@ -68,7 +69,7 @@ namespace mailrss {
             }
         };
 
-        vector<Entry> entries;
+        std::vector<Entry> entries;
         const optional<string> title() const { return textOfChildElement("title"); };
 
         // TODO: Add support for Atom documents
@@ -109,7 +110,7 @@ namespace mailrss {
         }
 
         std::vector<Feed::Entry> unseenEntriesInRemoteFeed(Feed &feed) {
-            vector<Feed::Entry> unseenEntries;
+            std::vector<Feed::Entry> unseenEntries;
             for (auto entry : feed.entries) {
                 if (entry.GUID() == lastSeenEntryGUID())
                     return unseenEntries;
@@ -121,7 +122,7 @@ namespace mailrss {
 
     class OPMLParser : public tinyxml2::XMLVisitor {
     public:
-        vector<LocalFeed> feeds;
+        std::vector<LocalFeed> feeds;
 
         bool VisitExit(const tinyxml2::XMLElement& element) {
             const char *type = element.Attribute("type");
@@ -166,7 +167,7 @@ namespace mailrss {
         }
 
     private:
-        vector<char> errorBuffer = vector<char>(CURL_ERROR_SIZE);
+        std::vector<char> errorBuffer = std::vector<char>(CURL_ERROR_SIZE);
         string URL;
 
         static int curlWriter(char *data, size_t size, size_t nmemb, string *writerData) {
@@ -188,8 +189,8 @@ namespace mailrss {
     }
 
     string formatEmail(const Feed& feed, const Feed::Entry& entry) {
-        ifstream templateFile("template.mail");
-        stringstream buffer;
+        std::ifstream templateFile("template.mail");
+        std::stringstream buffer;
         buffer << templateFile.rdbuf();
         auto text = buffer.str();
         replaceWord(text, "{{feed_title}}", feed.title());
@@ -254,7 +255,7 @@ namespace mailrss {
 
     class LocalFeedManager {
     public:
-        vector<LocalFeed> feeds;
+        std::vector<LocalFeed> feeds;
         LocalFeedManager(string feedDocumentName = "feeds.opml"): feedDocumentName(feedDocumentName) {
             feedDocument.LoadFile(feedDocumentName.c_str());
             mailrss::OPMLParser parser;
@@ -294,7 +295,7 @@ namespace mailrss {
 }
 
 int main(int argc, char *argv[]) {
-    vector<string> arguments(argv + 1, argv + argc);
+    std::vector<string> arguments(argv + 1, argv + argc);
     mailrss::LocalFeedManager feedManager;
 
     if (arguments.size() == 0) {
@@ -317,7 +318,7 @@ int main(int argc, char *argv[]) {
                 throw std::out_of_range("specified feed that doesn't exist for delete");
             feedManager.deleteFeed(index);
             return EXIT_SUCCESS;
-        } catch (const std::exception& e) {
+        } catch (const std::exception&) {
             puts("Usage: 'mailrss delete N' where N must be an index taken from 'mailrss list'");
             return EXIT_FAILURE;
         }
