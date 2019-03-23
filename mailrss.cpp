@@ -178,7 +178,7 @@ namespace mailrss {
         }
     };
 
-    void replaceWord(string text, string word, optional<string> replacement) {
+    void replaceWord(string &text, string word, optional<string> replacement) {
         if (!replacement)
             return;
 
@@ -211,7 +211,7 @@ namespace mailrss {
         }
     }
 
-    void process(LocalFeed &feed) {
+    void process(LocalFeed &feed, bool sendEmails = false) {
         printf("[%s]: ", feed.title().value().c_str()); fflush(stdout);
 
         // TODO: Store and check etags/skipdays etc
@@ -232,7 +232,7 @@ namespace mailrss {
 
         auto unseenEntries = feed.unseenEntriesInRemoteFeed(remoteFeed.value());
         if (unseenEntries.size() > 0) {
-            printf("sending email for %lu new posts...", unseenEntries.size());
+            printf("%s %lu new posts...", sendEmails ? "sending email for" : "synced", unseenEntries.size());
         } else {
             puts("nothing new.");
             return;
@@ -240,11 +240,11 @@ namespace mailrss {
 
         mailrss::Feed::Entry *lastSentEntry = nullptr;
         for (auto entryIterator = unseenEntries.rbegin(); entryIterator != unseenEntries.rend(); ++entryIterator) {
-            auto mail = mailrss::formatEmail(remoteFeed.value(), *entryIterator);
-            // Send here
-            bool success = true;
-            if (success)
-                lastSentEntry = &*entryIterator;
+            if (sendEmails) {
+                auto mail = mailrss::formatEmail(remoteFeed.value(), *entryIterator);
+                sendmail(mail);
+            }
+            lastSentEntry = &*entryIterator;
         }
 
         if (lastSentEntry != nullptr) {
@@ -282,12 +282,22 @@ namespace mailrss {
             }
         }
 
-        void processFeeds() {
+        // Processes all feeds and stores state, but skips sending e-mails
+        void syncFeeds() {
             for (auto feed : feeds) {
-                mailrss::process(feed);
+                mailrss::process(feed, false);
                 feedDocument.SaveFile(feedDocumentName.c_str());
             }
         }
+
+        // Processes all feeds and sends e-mails for unseed entries
+        void processFeeds() {
+            for (auto feed : feeds) {
+                mailrss::process(feed, true);
+                feedDocument.SaveFile(feedDocumentName.c_str());
+            }
+        }
+
     private:
         string feedDocumentName;
         tinyxml2::XMLDocument feedDocument;
@@ -298,7 +308,12 @@ int main(int argc, char *argv[]) {
     std::vector<string> arguments(argv + 1, argv + argc);
     mailrss::LocalFeedManager feedManager;
 
-    if (arguments.size() == 0) {
+    if (find(arguments.begin(), arguments.end(), "sync") != arguments.end()) {
+        feedManager.syncFeeds();
+        return EXIT_SUCCESS;
+    }
+
+    if (find(arguments.begin(), arguments.end(), "run") != arguments.end()) {
         feedManager.processFeeds();
         return EXIT_SUCCESS;
     }
@@ -324,6 +339,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    puts("Available commands: list, delete, add, dry-run");
+    puts("Available commands: sync, run, list, delete, add");
     return EXIT_FAILURE;
 }
