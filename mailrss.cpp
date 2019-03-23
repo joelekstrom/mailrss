@@ -188,7 +188,7 @@ namespace mailrss {
         }
     }
 
-    string formatEmail(const Feed& feed, const Feed::Entry& entry) {
+    string formatEmail(LocalFeed& feed, const Feed::Entry& entry) {
         std::ifstream templateFile("template.mail");
         std::stringstream buffer;
         buffer << templateFile.rdbuf();
@@ -232,7 +232,7 @@ namespace mailrss {
 
         auto unseenEntries = feed.unseenEntriesInRemoteFeed(remoteFeed.value());
         if (unseenEntries.size() > 0) {
-            printf("%s %lu new posts...", sendEmails ? "sending email for" : "synced", unseenEntries.size());
+            printf("%s %lu new posts...", sendEmails ? "sending email for" : "synced", unseenEntries.size()); fflush(stdout);
         } else {
             puts("nothing new.");
             return;
@@ -241,7 +241,7 @@ namespace mailrss {
         mailrss::Feed::Entry *lastSentEntry = nullptr;
         for (auto entryIterator = unseenEntries.rbegin(); entryIterator != unseenEntries.rend(); ++entryIterator) {
             if (sendEmails) {
-                auto mail = mailrss::formatEmail(remoteFeed.value(), *entryIterator);
+                auto mail = mailrss::formatEmail(feed, *entryIterator);
                 sendmail(mail);
             }
             lastSentEntry = &*entryIterator;
