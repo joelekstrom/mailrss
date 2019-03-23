@@ -48,7 +48,7 @@ namespace mailrss {
         public:
             Entry(tinyxml2::XMLElement *element): XMLElementWrapper(element) {}
             optional<string> title() const { return textOfChildElement("title"); }
-            optional<string> URL() const { return textOfChildElement("URL"); }
+            optional<string> URL() const { return textOfChildElement("link"); }
             optional<string> description() const { return textOfChildElement("description"); }
             optional<string> GUID() const {
                 // Try different fields in order of preference since none is required
