@@ -1,11 +1,18 @@
 #pragma once
 
-#include <optional>
 #include <string>
 #include <vector>
+#include <memory>
 #include "lib/tinyxml2/tinyxml2.h"
 
+#if (defined(__GNUC__) && !defined(__clang__))
+#include <experimental/optional>
+using std::experimental::optional;
+#else
+#include <optional>
 using std::optional;
+#endif
+
 using std::string;
 
 namespace mailrss {

@@ -8,11 +8,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <optional>
 #include "Feed.hpp"
-
-using std::optional;
-using std::string;
 
 namespace mailrss {
 

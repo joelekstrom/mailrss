@@ -1,7 +1,7 @@
 CXXFLAGS=-std=c++17 -g -Wall $(shell pkg-config --cflags libcurl)
 LDLIBS += $(shell pkg-config --libs libcurl)
 
-mailrss: tinyxml2.o mailrss.cpp feed.cpp feed.hpp
+mailrss: tinyxml2.o mailrss.cpp Feed.cpp Feed.hpp
 	$(CXX) $(CXXFLAGS) $(LDLIBS) -o mailrss.o -c mailrss.cpp
 	$(CXX) $(CXXFLAGS) $(LDLIBS) -o Feed.o -c Feed.cpp
 	$(CXX) $(CXXFLAGS) $(LDLIBS) -o mailrss mailrss.o Feed.o tinyxml2.o

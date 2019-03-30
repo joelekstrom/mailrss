@@ -1,6 +1,5 @@
 #include "Feed.hpp"
 #include <sstream>
-#include <memory>
 
 namespace mailrss {
 
