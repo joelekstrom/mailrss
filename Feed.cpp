@@ -62,11 +62,64 @@ namespace mailrss {
         }
     };
 
+    class AtomFeed: public Feed {
+    private:
+        class AtomEntry: public Entry {
+        public:
+            AtomEntry(tinyxml2::XMLElement *element): Entry(element) {}
+            optional<string> title() const { return textOfChildElement("title"); }
+            optional<string> GUID() const { return textOfChildElement("id"); }
+            optional<string> URL() const {
+                auto link = element->FirstChildElement("link");
+
+                // Enumerate link elements and check the relation ("rel"-attribute).
+                // If there is no relation we assume it's the link we want, otherwise we look
+                // for the "alternate" attribute
+                for (; link != nullptr; link = link->NextSiblingElement("link")) {
+                    auto relation = link->Attribute("rel");
+                    string alternate = "alternate";
+                    if (relation == nullptr || alternate == relation) {
+                        return link->Attribute("href");
+                    }
+                }
+                return {};
+            }
+
+            optional<string> description() const {
+                auto content = textOfChildElement("content");
+                if (content) {
+                    return content;
+                }
+                return textOfChildElement("summary");
+            }
+            ~AtomEntry() {}
+        };
+
+    public:
+        AtomFeed(tinyxml2::XMLElement *channelElement): Feed(channelElement) {
+            auto item = channelElement->FirstChildElement("entry");
+            for (; item != nullptr; item = item->NextSiblingElement("entry")) {
+                entries.push_back(std::make_unique<AtomEntry>(AtomEntry(item)));
+            }
+        }
+    };
+
+
     optional<Feed> Feed::parseDocument(tinyxml2::XMLDocument &document) {
         auto rss = document.FirstChildElement("rss");
         if (rss) {
             auto channelElement = rss->FirstChildElement("channel");
             return RSSFeed(channelElement);
+        }
+
+        // Atom
+        auto feedElement = document.FirstChildElement("feed");
+        if (feedElement) {
+            auto namespaceAttribute = feedElement->Attribute("xmlns");
+            string expectedNamespace = "http://www.w3.org/2005/Atom";
+            if (namespaceAttribute && expectedNamespace == namespaceAttribute) {
+                return AtomFeed(feedElement);
+            }
         }
         return {};
     }
