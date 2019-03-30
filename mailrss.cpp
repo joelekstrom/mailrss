@@ -9,87 +9,12 @@
 #include <cstdio>
 #include <cstring>
 #include <optional>
+#include "Feed.hpp"
 
 using std::optional;
 using std::string;
 
 namespace mailrss {
-    class XMLElementWrapper {
-    public:
-        XMLElementWrapper(tinyxml2::XMLElement *element): element(element) {}
-
-        optional<string> textOfChildElement(string childElementName) const {
-            auto childElement = element->FirstChildElement(childElementName.c_str());
-            if (childElement) {
-                const char *text = childElement->GetText();
-                if (text) return text;
-            }
-            return {};
-        }
-
-        optional<string> textOfAttribute(string attributeName) {
-            auto attributeText = element->Attribute(attributeName.c_str());
-            if (attributeText) {
-                return attributeText;
-            }
-            return {};
-        }
-
-        void setTextOfAttribute(string attributeName, string text) {
-            element->SetAttribute(attributeName.c_str(), text.c_str());
-        }
-    protected:
-        tinyxml2::XMLElement *element;
-    };
-
-    class Feed: XMLElementWrapper {
-    public:
-        class Entry: XMLElementWrapper {
-        public:
-            Entry(tinyxml2::XMLElement *element): XMLElementWrapper(element) {}
-            optional<string> title() const { return textOfChildElement("title"); }
-            optional<string> URL() const { return textOfChildElement("link"); }
-            optional<string> description() const { return textOfChildElement("description"); }
-            optional<string> GUID() const {
-                // Try different fields in order of preference since none is required
-                auto guid = textOfChildElement("guid");
-                if (guid) return guid;
-                if (URL()) return URL();
-                if (title()) return title();
-                if (description()) {
-                    // Hash the content of description as a last resort
-                    std::hash<string> hasher;
-                    size_t hash = hasher(description().value());
-                    std::ostringstream stringStream;
-                    stringStream << hash;
-                    string a;
-                    return stringStream.str();
-                }
-                return {};
-            }
-        };
-
-        std::vector<Entry> entries;
-        const optional<string> title() const { return textOfChildElement("title"); };
-
-        // TODO: Add support for Atom documents
-        static optional<Feed> parseDocument(tinyxml2::XMLDocument &document) {
-            auto rss = document.FirstChildElement("rss");
-            if (rss == nullptr) {
-                // Not an RSS-feed, currently unsupported
-                return {};
-            }
-            auto channelElement = rss->FirstChildElement("channel");
-            return Feed(channelElement);
-        }
-    private:
-        Feed(tinyxml2::XMLElement *channelElement): XMLElementWrapper(channelElement) {
-            auto item = element->FirstChildElement("item");
-            for (; item != nullptr; item = item->NextSiblingElement("item")) {
-                entries.push_back(Entry(item));
-            }
-        }
-    };
 
     /**
      A local feed is an entry in the OPML-file provided by the user. It will
@@ -109,12 +34,12 @@ namespace mailrss {
             element = nullptr;
         }
 
-        std::vector<Feed::Entry> unseenEntriesInRemoteFeed(Feed &feed) {
-            std::vector<Feed::Entry> unseenEntries;
-            for (auto entry : feed.entries) {
-                if (entry.GUID() == lastSeenEntryGUID())
+        std::vector<Feed::Entry *> unseenEntriesInRemoteFeed(Feed &feed) {
+            std::vector<Feed::Entry *> unseenEntries;
+            for (auto &entry : feed.entries) {
+                if (entry->GUID() == lastSeenEntryGUID())
                     return unseenEntries;
-                unseenEntries.push_back(entry);
+                unseenEntries.push_back(entry.get());
             }
             return unseenEntries;
         }
@@ -188,15 +113,15 @@ namespace mailrss {
         }
     }
 
-    string formatEmail(LocalFeed& feed, const Feed::Entry& entry) {
+    string formatEmail(LocalFeed& feed, const Feed::Entry *entry) {
         std::ifstream templateFile("template.mail");
         std::stringstream buffer;
         buffer << templateFile.rdbuf();
         auto text = buffer.str();
         replaceWord(text, "{{feed_title}}", feed.title());
-        replaceWord(text, "{{article_title}}", entry.title());
-        replaceWord(text, "{{article_description}}", entry.description());
-        replaceWord(text, "{{article_url}}", entry.URL());
+        replaceWord(text, "{{article_title}}", entry->title());
+        replaceWord(text, "{{article_description}}", entry->description());
+        replaceWord(text, "{{article_url}}", entry->URL());
         return text;
     };
 
@@ -244,7 +169,7 @@ namespace mailrss {
                 auto mail = mailrss::formatEmail(feed, *entryIterator);
                 sendmail(mail);
             }
-            lastSentEntry = &*entryIterator;
+            lastSentEntry = *entryIterator;
         }
 
         if (lastSentEntry != nullptr) {
