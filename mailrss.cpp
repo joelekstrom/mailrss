@@ -179,7 +179,15 @@ namespace mailrss {
     public:
         std::vector<LocalFeed> feeds;
         LocalFeedManager(string feedDocumentName = "feeds.opml"): feedDocumentName(feedDocumentName) {
-            feedDocument.LoadFile(feedDocumentName.c_str());
+            tinyxml2::XMLError error = feedDocument.LoadFile(feedDocumentName.c_str());
+            if (error == tinyxml2::XML_ERROR_FILE_NOT_FOUND) {
+                printf("Unable to find %s\n", feedDocumentName.c_str());
+                exit(EXIT_FAILURE);
+            } else if (error) {
+                printf("%s could not be opened. Make sure the file has the correct permissions.\n", feedDocumentName.c_str());
+                exit(EXIT_FAILURE);
+            }
+
             mailrss::OPMLParser parser;
             feedDocument.Accept(&parser);
             feeds = parser.feeds;
