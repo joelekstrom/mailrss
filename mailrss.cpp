@@ -154,7 +154,7 @@ namespace mailrss {
 
         auto unseenEntries = feed.unseenEntriesInRemoteFeed(remoteFeed.value());
         if (unseenEntries.size() > 0) {
-            printf("%s %lu new posts...", sendEmails ? "sending email for" : "synced", unseenEntries.size()); fflush(stdout);
+            printf("%s %lu new posts...", sendEmails ? "sending email for" : "synced", (long)unseenEntries.size()); fflush(stdout);
         } else {
             puts("nothing new.");
             return;
@@ -192,7 +192,7 @@ namespace mailrss {
             }
         }
 
-        void deleteFeed(int index) {
+        void deleteFeed(unsigned int index) {
             if (feeds.size() > index) {
                 auto feed = feeds[index];
                 feeds.erase(feeds.begin() + index);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
         try {
             if (++deleteIterIndex == arguments.end())
                 throw std::out_of_range("not enough arguments for delete");
-            int index = stoi(*deleteIterIndex);
+            unsigned int index = stoi(*deleteIterIndex);
             if (index >= feedManager.feeds.size())
                 throw std::out_of_range("specified feed that doesn't exist for delete");
             feedManager.deleteFeed(index);
