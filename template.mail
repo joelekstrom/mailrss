@@ -1,7 +1,7 @@
 To: you@yourdomain.com
 From: "{{feed_title}}" <sender@yourdomain.com>
 Subject: {{article_title}}
-Content-Type: text/plain
+Content-Type: {{article_content_type}}
 
 {{article_description}}
 

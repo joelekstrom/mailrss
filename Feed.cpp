@@ -49,6 +49,11 @@ namespace mailrss {
                 }
                 return {};
             }
+
+            bool hasHTMLContent() const {
+                return false;
+            }
+
             ~RSSEntry() {}
         };
 
@@ -91,6 +96,18 @@ namespace mailrss {
                 }
                 return textOfChildElement("summary");
             }
+
+            bool hasHTMLContent() const {
+                auto contentElement = element->FirstChildElement("content");
+                if (!contentElement) contentElement = element->FirstChildElement("summary");
+                if (!contentElement) return false;
+                auto type = contentElement->Attribute("type");
+                if (type) {
+                    return string("html") == type || string("xhtml") == type;
+                }
+                return false;
+            }
+
             ~AtomEntry() {}
         };
 

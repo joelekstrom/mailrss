@@ -118,6 +118,7 @@ namespace mailrss {
         replaceWord(text, "{{article_title}}", entry->title());
         replaceWord(text, "{{article_description}}", entry->description());
         replaceWord(text, "{{article_url}}", entry->URL());
+        replaceWord(text, "{{article_content_type}}", entry->hasHTMLContent() ? "text/html; charset=\"UTF-8\"" : "text/plain");
         return text;
     };
 
