@@ -3,7 +3,7 @@ From: "{{feed_title}}" <sender@yourdomain.com>
 Subject: {{article_title}}
 Content-Type: {{article_content_type}}
 
-{{article_description}}
+{{article_content}}
 
 --
 Posted by mailrss. Full link to article: {{article_url}}

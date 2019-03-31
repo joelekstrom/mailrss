@@ -32,7 +32,7 @@ namespace mailrss {
         public:
             virtual optional<string> title() const = 0;
             virtual optional<string> URL() const = 0;
-            virtual optional<string> description() const = 0;
+            virtual optional<string> content() const = 0;
             virtual optional<string> GUID() const = 0;
             virtual bool hasHTMLContent() const = 0;
             virtual ~Entry() {}

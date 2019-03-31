@@ -31,17 +31,22 @@ namespace mailrss {
             RSSEntry(tinyxml2::XMLElement *element): Entry(element) {}
             optional<string> title() const { return textOfChildElement("title"); }
             optional<string> URL() const { return textOfChildElement("link"); }
-            optional<string> description() const { return textOfChildElement("description"); }
+            optional<string> content() const {
+                auto encodedContent = textOfChildElement("content:encoded");
+                if (encodedContent) return encodedContent;
+                return textOfChildElement("description");
+            }
+
             optional<string> GUID() const {
                 // Try different fields in order of preference since none is required
                 auto guid = textOfChildElement("guid");
                 if (guid) return guid;
                 if (URL()) return URL();
                 if (title()) return title();
-                if (description()) {
+                if (content()) {
                     // Hash the content of description as a last resort
                     std::hash<string> hasher;
-                    size_t hash = hasher(description().value());
+                    size_t hash = hasher(content().value());
                     std::ostringstream stringStream;
                     stringStream << hash;
                     string a;
@@ -51,7 +56,18 @@ namespace mailrss {
             }
 
             bool hasHTMLContent() const {
-                return false;
+                if (textOfChildElement("content:encoded")) {
+                    return true;
+                }
+
+                // Since RSS doesn't let us know the content type in the description field, we have to guess.
+                // Assume that if there are more than 1 matching pairs of < and >,
+                // we're dealing with html
+                auto text = content();
+                if (!text) return false;
+                size_t openingBracketCount = std::count(text->begin(), text->end(), '<');
+                size_t closingBracketCount = std::count(text->begin(), text->end(), '>');
+                return openingBracketCount > 0 && openingBracketCount == closingBracketCount;
             }
 
             ~RSSEntry() {}
@@ -89,7 +105,7 @@ namespace mailrss {
                 return {};
             }
 
-            optional<string> description() const {
+            optional<string> content() const {
                 auto content = textOfChildElement("content");
                 if (content) {
                     return content;

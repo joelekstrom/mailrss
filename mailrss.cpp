@@ -95,7 +95,7 @@ namespace mailrss {
             if(writerData == NULL)
                 return 0;
             writerData->append(data, size * nmemb);
-            return size * nmemb;
+            return (int)size * (int)nmemb;
         }
     };
 
@@ -116,7 +116,7 @@ namespace mailrss {
         auto text = buffer.str();
         replaceWord(text, "{{feed_title}}", feed.title());
         replaceWord(text, "{{article_title}}", entry->title());
-        replaceWord(text, "{{article_description}}", entry->description());
+        replaceWord(text, "{{article_content}}", entry->content());
         replaceWord(text, "{{article_url}}", entry->URL());
         replaceWord(text, "{{article_content_type}}", entry->hasHTMLContent() ? "text/html; charset=\"UTF-8\"" : "text/plain");
         return text;
