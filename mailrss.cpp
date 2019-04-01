@@ -179,14 +179,15 @@ namespace mailrss {
     class LocalFeedManager {
     public:
         std::vector<LocalFeed> feeds;
+        tinyxml2::XMLDocument feedDocument;
+        string feedDocumentName;
+
         LocalFeedManager(string feedDocumentName): feedDocumentName(feedDocumentName) {
             tinyxml2::XMLError error = feedDocument.LoadFile(feedDocumentName.c_str());
             if (error == tinyxml2::XML_ERROR_FILE_NOT_FOUND) {
-                printf("Unable to find %s\n", feedDocumentName.c_str());
-                exit(EXIT_FAILURE);
+                throw std::invalid_argument("Unable to find " + feedDocumentName);
             } else if (error) {
-                printf("%s could not be opened. Make sure the file has the correct permissions.\n", feedDocumentName.c_str());
-                exit(EXIT_FAILURE);
+                throw std::domain_error(feedDocumentName + " could not be opened. Make sure the file has the correct permissions.");
             }
 
             mailrss::OPMLParser parser;
@@ -228,10 +229,6 @@ namespace mailrss {
                 feedDocument.SaveFile(feedDocumentName.c_str());
             }
         }
-
-    private:
-        string feedDocumentName;
-        tinyxml2::XMLDocument feedDocument;
     };
 
     class Command {
@@ -284,8 +281,8 @@ void printHelp() {
 int main(int argc, char *argv[]) {
     try {
         auto command = mailrss::Command::parseOptions(argc, argv);
-        auto fileName = command.file ? command.file.value() : std::string(getenv("HOME")) + "/.mailrss.opml";
-        auto feedManager = mailrss::LocalFeedManager(fileName);
+        string fileName = command.file ? command.file.value() : std::string(getenv("HOME")) + "/.mailrss.opml";
+        mailrss::LocalFeedManager feedManager(fileName);
         if (command.name == "sync") {
             feedManager.syncFeeds();
         } else if (command.name == "run") {
