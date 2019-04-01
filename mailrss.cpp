@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <stdlib.h>
 #include "Feed.hpp"
 
 namespace mailrss {
@@ -178,7 +179,7 @@ namespace mailrss {
     class LocalFeedManager {
     public:
         std::vector<LocalFeed> feeds;
-        LocalFeedManager(string feedDocumentName = "feeds.opml"): feedDocumentName(feedDocumentName) {
+        LocalFeedManager(string feedDocumentName): feedDocumentName(feedDocumentName) {
             tinyxml2::XMLError error = feedDocument.LoadFile(feedDocumentName.c_str());
             if (error == tinyxml2::XML_ERROR_FILE_NOT_FOUND) {
                 printf("Unable to find %s\n", feedDocumentName.c_str());
@@ -208,7 +209,7 @@ namespace mailrss {
                 feed.remove();
                 feedDocument.SaveFile(feedDocumentName.c_str());
             } else {
-                printf("No feed at index %i\n", index);
+                throw std::out_of_range("Feed " + std::to_string(index) + " out of bounds. (0-" + std::to_string(feeds.size()) + ")");
             }
         }
 
@@ -232,43 +233,72 @@ namespace mailrss {
         string feedDocumentName;
         tinyxml2::XMLDocument feedDocument;
     };
+
+    class Command {
+    public:
+        string name;
+        optional<int> index;
+        optional<string> file;
+
+        static Command parseOptions(int argc, char *argv[]) {
+            std::vector<string> arguments(argv + 1, argv + argc);
+            auto argumentIterator = arguments.begin();
+            if (argumentIterator == arguments.end()) {
+                throw std::invalid_argument("missing command");
+            }
+
+            string command = *argumentIterator++;
+            std::vector<string> availableCommands = { "sync", "run", "list", "delete", "add" };
+            if (find(availableCommands.begin(), availableCommands.end(), command) == availableCommands.end()) {
+                throw std::invalid_argument(command + " is not a valid command");
+            }
+
+            optional<int> index = {};
+            if (command == "delete") {
+                if (argumentIterator == arguments.end())
+                    throw std::out_of_range("Not enough arguments for delete. Usage: 'mailrss delete [index] [[file]]' where index is the number of the feed in 'mailrss list'");
+                try {
+                    index = stoi(*argumentIterator++);
+                } catch (std::exception) {
+                    throw std::invalid_argument("'delete' requires an integer argument");
+                }
+            }
+
+            optional<string> file = {};
+            if (argumentIterator != arguments.end()) {
+                file = *argumentIterator;
+            }
+
+            return Command(command, index, file);
+        }
+    private:
+        Command(string name, optional<int> index, optional<string> file): name(name), index(index), file(file) {}
+    };
+}
+
+void printHelp() {
+    puts("Available commands: sync, run, list, delete, add");
+    puts("Usage: mailrss [command] [[arg]] [[file]]");
 }
 
 int main(int argc, char *argv[]) {
-    std::vector<string> arguments(argv + 1, argv + argc);
-    mailrss::LocalFeedManager feedManager;
-
-    if (find(arguments.begin(), arguments.end(), "sync") != arguments.end()) {
-        feedManager.syncFeeds();
-        return EXIT_SUCCESS;
-    }
-
-    if (find(arguments.begin(), arguments.end(), "run") != arguments.end()) {
-        feedManager.processFeeds();
-        return EXIT_SUCCESS;
-    }
-
-    if (find(arguments.begin(), arguments.end(), "list") != arguments.end()) {
-        feedManager.listFeeds();
-        return EXIT_SUCCESS;
-    }
-
-    auto deleteIterIndex = find(arguments.begin(), arguments.end(), "delete");
-    if (deleteIterIndex != arguments.end()) {
-        try {
-            if (++deleteIterIndex == arguments.end())
-                throw std::out_of_range("not enough arguments for delete");
-            unsigned int index = stoi(*deleteIterIndex);
-            if (index >= feedManager.feeds.size())
-                throw std::out_of_range("specified feed that doesn't exist for delete");
-            feedManager.deleteFeed(index);
-            return EXIT_SUCCESS;
-        } catch (const std::exception&) {
-            puts("Usage: 'mailrss delete N' where N must be an index taken from 'mailrss list'");
-            return EXIT_FAILURE;
+    try {
+        auto command = mailrss::Command::parseOptions(argc, argv);
+        auto fileName = command.file ? command.file.value() : std::string(getenv("HOME")) + "/.mailrss.opml";
+        auto feedManager = mailrss::LocalFeedManager(fileName);
+        if (command.name == "sync") {
+            feedManager.syncFeeds();
+        } else if (command.name == "run") {
+            feedManager.processFeeds();
+        } else if (command.name == "list") {
+            feedManager.listFeeds();
+        } else if (command.name == "delete") {
+            feedManager.deleteFeed(command.index.value());
         }
+    } catch (std::exception& e) {
+        puts(e.what());
+        printHelp();
+        return EXIT_FAILURE;
     }
-
-    puts("Available commands: sync, run, list, delete, add");
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
